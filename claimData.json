@@ -11,15 +11,14 @@
       ]
     }
   },
-  "user_005": {
+  "user_003": {
     "car": {
       "issueType": [
-        "damage",
-        "dent",
-        "scratch"
+        "dent"
       ],
       "objectParts": [
-        "door"
+        "bumper",
+        "rear bumper"
       ]
     }
   },
@@ -32,6 +31,18 @@
       "objectParts": [
         "bumper",
         "rear bumper",
+        "door"
+      ]
+    }
+  },
+  "user_005": {
+    "car": {
+      "issueType": [
+        "damage",
+        "dent",
+        "scratch"
+      ],
+      "objectParts": [
         "door"
       ]
     }
@@ -60,17 +71,6 @@
       ]
     }
   },
-  "user_003": {
-    "car": {
-      "issueType": [
-        "dent"
-      ],
-      "objectParts": [
-        "bumper",
-        "rear bumper"
-      ]
-    }
-  },
   "user_011": {
     "car": {
       "issueType": [
@@ -79,20 +79,6 @@
       ],
       "objectParts": [
         "headlight"
-      ]
-    }
-  },
-  "user_018": {
-    "laptop": {
-      "issueType": [
-        "broken",
-        "missing",
-        "damage",
-        "liquid damage",
-        "keys missing"
-      ],
-      "objectParts": [
-        "keyboard"
       ]
     }
   },
@@ -107,6 +93,17 @@
       ]
     }
   },
+  "user_016": {
+    "car": {
+      "issueType": [
+        "damaged",
+        "dented"
+      ],
+      "objectParts": [
+        "door"
+      ]
+    }
+  },
   "user_017": {
     "laptop": {
       "issueType": [
@@ -118,6 +115,20 @@
         "screen",
         "keyboard",
         "hinge"
+      ]
+    }
+  },
+  "user_018": {
+    "laptop": {
+      "issueType": [
+        "broken",
+        "missing",
+        "damage",
+        "liquid damage",
+        "keys missing"
+      ],
+      "objectParts": [
+        "keyboard"
       ]
     }
   },
@@ -147,6 +158,20 @@
         "hinge",
         "trackpad",
         "palm-rest"
+      ]
+    }
+  },
+  "user_022": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "crack",
+        "damaged"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "body"
       ]
     }
   },
@@ -258,6 +283,19 @@
         "package",
         "box",
         "wrapping"
+      ]
+    }
+  },
+  "user_033": {
+    "package": {
+      "issueType": [
+        "crushed"
+      ],
+      "objectParts": [
+        "package",
+        "box",
+        "cardboard box",
+        "corner"
       ]
     }
   },
@@ -393,17 +431,6 @@
       ]
     }
   },
-  "user_047": {
-    "car": {
-      "issueType": [
-        "damage",
-        "dented"
-      ],
-      "objectParts": [
-        "door"
-      ]
-    }
-  },
   "user_046": {
     "car": {
       "issueType": [
@@ -418,41 +445,14 @@
       ]
     }
   },
-  "user_022": {
-    "laptop": {
-      "issueType": [
-        "cracked",
-        "crack",
-        "damaged"
-      ],
-      "objectParts": [
-        "screen",
-        "keyboard",
-        "body"
-      ]
-    }
-  },
-  "user_016": {
+  "user_047": {
     "car": {
       "issueType": [
-        "damaged",
+        "damage",
         "dented"
       ],
       "objectParts": [
         "door"
-      ]
-    }
-  },
-  "user_033": {
-    "package": {
-      "issueType": [
-        "crushed"
-      ],
-      "objectParts": [
-        "package",
-        "box",
-        "cardboard box",
-        "corner"
       ]
     }
   }

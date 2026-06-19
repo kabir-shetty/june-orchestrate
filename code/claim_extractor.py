@@ -123,7 +123,10 @@ def main():
             'user_claim': row['user_claim'],
             'claim_object': row['claim_object'],
         }
-        
+    
+    # Sort claims for easier handling
+    claims = dict(sorted(claims.items()))
+    
     # Make a json file with the following format:
     # user_id: {claim_object: {issueType: [...], objectParts: [...]}}
     claimDataByUser = {}
@@ -154,5 +157,5 @@ def find_present_keywords(text, keywords):
 
     return present
 
-
-main()
+if __name__ == "__main__":
+    main()
