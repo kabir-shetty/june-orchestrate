@@ -1,0 +1,459 @@
+{
+  "user_002": {
+    "car": {
+      "issueType": [
+        "damaged"
+      ],
+      "objectParts": [
+        "bumper",
+        "front bumper",
+        "headlight"
+      ]
+    }
+  },
+  "user_005": {
+    "car": {
+      "issueType": [
+        "damage",
+        "dent",
+        "scratch"
+      ],
+      "objectParts": [
+        "door"
+      ]
+    }
+  },
+  "user_004": {
+    "car": {
+      "issueType": [
+        "damaged",
+        "dented"
+      ],
+      "objectParts": [
+        "bumper",
+        "rear bumper",
+        "door"
+      ]
+    }
+  },
+  "user_007": {
+    "car": {
+      "issueType": [
+        "broken",
+        "missing"
+      ],
+      "objectParts": [
+        "side mirror",
+        "mirror"
+      ]
+    }
+  },
+  "user_008": {
+    "car": {
+      "issueType": [
+        "damage",
+        "hail dents"
+      ],
+      "objectParts": [
+        "windshield",
+        "hood"
+      ]
+    }
+  },
+  "user_003": {
+    "car": {
+      "issueType": [
+        "dent"
+      ],
+      "objectParts": [
+        "bumper",
+        "rear bumper"
+      ]
+    }
+  },
+  "user_011": {
+    "car": {
+      "issueType": [
+        "broken",
+        "broke"
+      ],
+      "objectParts": [
+        "headlight"
+      ]
+    }
+  },
+  "user_018": {
+    "laptop": {
+      "issueType": [
+        "broken",
+        "missing",
+        "damage",
+        "liquid damage",
+        "keys missing"
+      ],
+      "objectParts": [
+        "keyboard"
+      ]
+    }
+  },
+  "user_014": {
+    "car": {
+      "issueType": [
+        "damage",
+        "crack"
+      ],
+      "objectParts": [
+        "windshield"
+      ]
+    }
+  },
+  "user_017": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "crack",
+        "damage"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "hinge"
+      ]
+    }
+  },
+  "user_019": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "crack",
+        "broke",
+        "damage"
+      ],
+      "objectParts": [
+        "screen",
+        "hinge"
+      ]
+    }
+  },
+  "user_020": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "damage"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "hinge",
+        "trackpad",
+        "palm-rest"
+      ]
+    }
+  },
+  "user_025": {
+    "laptop": {
+      "issueType": [
+        "missing",
+        "came off",
+        "keys missing"
+      ],
+      "objectParts": [
+        "keyboard"
+      ]
+    }
+  },
+  "user_026": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "crack"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "body",
+        "outer body"
+      ]
+    }
+  },
+  "user_027": {
+    "laptop": {
+      "issueType": [
+        "damage",
+        "liquid damage",
+        "stained",
+        "stain"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard"
+      ]
+    }
+  },
+  "user_028": {
+    "laptop": {
+      "issueType": [
+        "broken",
+        "damaged",
+        "damage"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "hinge"
+      ]
+    }
+  },
+  "user_029": {
+    "package": {
+      "issueType": [
+        "crushed",
+        "open",
+        "damage"
+      ],
+      "objectParts": [
+        "package",
+        "corner",
+        "item"
+      ]
+    }
+  },
+  "user_030": {
+    "package": {
+      "issueType": [
+        "torn",
+        "torn open",
+        "open",
+        "missing"
+      ],
+      "objectParts": [
+        "package",
+        "seal",
+        "item"
+      ]
+    }
+  },
+  "user_031": {
+    "package": {
+      "issueType": [
+        "wet",
+        "damage",
+        "unreadable"
+      ],
+      "objectParts": [
+        "box",
+        "delivery box",
+        "label",
+        "contents"
+      ]
+    }
+  },
+  "user_032": {
+    "package": {
+      "issueType": [
+        "damage",
+        "missing"
+      ],
+      "objectParts": [
+        "package",
+        "box",
+        "wrapping"
+      ]
+    }
+  },
+  "user_034": {
+    "package": {
+      "issueType": [
+        "crushed",
+        "crush",
+        "damage"
+      ],
+      "objectParts": [
+        "package",
+        "box"
+      ]
+    }
+  },
+  "user_036": {
+    "package": {
+      "issueType": [
+        "wet",
+        "water damaged",
+        "water damage",
+        "damaged",
+        "damage"
+      ],
+      "objectParts": [
+        "package",
+        "box",
+        "delivery box"
+      ]
+    }
+  },
+  "user_037": {
+    "package": {
+      "issueType": [
+        "crushed",
+        "damage"
+      ],
+      "objectParts": [
+        "package",
+        "item"
+      ]
+    }
+  },
+  "user_038": {
+    "package": {
+      "issueType": [
+        "damaged",
+        "broken"
+      ],
+      "objectParts": [
+        "box",
+        "item inside",
+        "item"
+      ]
+    }
+  },
+  "user_039": {
+    "package": {
+      "issueType": [
+        "water damage",
+        "damage",
+        "stain",
+        "oily mark"
+      ],
+      "objectParts": [
+        "package",
+        "contents"
+      ]
+    }
+  },
+  "user_040": {
+    "package": {
+      "issueType": [
+        "torn",
+        "damage"
+      ],
+      "objectParts": [
+        "package",
+        "seal"
+      ]
+    }
+  },
+  "user_041": {
+    "car": {
+      "issueType": [
+        "scratched",
+        "scratch"
+      ],
+      "objectParts": [
+        "bumper",
+        "front bumper"
+      ]
+    }
+  },
+  "user_042": {
+    "car": {
+      "issueType": [],
+      "objectParts": []
+    }
+  },
+  "user_043": {
+    "car": {
+      "issueType": [
+        "damaged",
+        "damage"
+      ],
+      "objectParts": [
+        "car body",
+        "body panel"
+      ]
+    }
+  },
+  "user_044": {
+    "laptop": {
+      "issueType": [
+        "broken",
+        "damage"
+      ],
+      "objectParts": [
+        "screen"
+      ]
+    }
+  },
+  "user_045": {
+    "laptop": {
+      "issueType": [],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "body",
+        "corner"
+      ]
+    }
+  },
+  "user_047": {
+    "car": {
+      "issueType": [
+        "damage",
+        "dented"
+      ],
+      "objectParts": [
+        "door"
+      ]
+    }
+  },
+  "user_046": {
+    "car": {
+      "issueType": [
+        "damage",
+        "broken"
+      ],
+      "objectParts": [
+        "bumper",
+        "side mirror",
+        "door",
+        "mirror"
+      ]
+    }
+  },
+  "user_022": {
+    "laptop": {
+      "issueType": [
+        "cracked",
+        "crack",
+        "damaged"
+      ],
+      "objectParts": [
+        "screen",
+        "keyboard",
+        "body"
+      ]
+    }
+  },
+  "user_016": {
+    "car": {
+      "issueType": [
+        "damaged",
+        "dented"
+      ],
+      "objectParts": [
+        "door"
+      ]
+    }
+  },
+  "user_033": {
+    "package": {
+      "issueType": [
+        "crushed"
+      ],
+      "objectParts": [
+        "package",
+        "box",
+        "cardboard box",
+        "corner"
+      ]
+    }
+  }
+}
