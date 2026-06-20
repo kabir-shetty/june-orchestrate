@@ -1,5 +1,6 @@
 import base64
 import csv
+import hashlib
 import io
 import json
 import mimetypes
@@ -7,6 +8,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
 from openai import OpenAI
 
 try:
@@ -17,8 +19,11 @@ except ImportError:  # pragma: no cover
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATASET_DIR = REPO_ROOT / "dataset"
-OUTPUT_PATH = REPO_ROOT / "imageData.json"
+IMAGE_DATA_PATH = REPO_ROOT / "imageData.json"
+DEFAULT_CLAIMS_PATH = DATASET_DIR / "claims.csv"
+DEFAULT_SAMPLE_PATH = DATASET_DIR / "sample_claims.csv"
 MODEL = os.getenv("OPENROUTER_MODEL", "nex-agi/nex-n2-pro:free")
+
 RISK_FLAG_ORDER = [
     "none",
     "blurry_image",
@@ -37,95 +42,124 @@ RISK_FLAG_ORDER = [
 ]
 RISK_FLAG_SET = set(RISK_FLAG_ORDER)
 
+OUTPUT_HEADERS = [
+    "user_id",
+    "image_paths",
+    "user_claim",
+    "claim_object",
+    "evidence_standard_met",
+    "evidence_standard_met_reason",
+    "risk_flags",
+    "issue_type",
+    "object_part",
+    "claim_status",
+    "claim_status_justification",
+    "supporting_image_ids",
+    "valid_image",
+    "severity",
+]
 
-dataKeywords = {
-    'car': {
-        'issueType': {
-            'dent': ['dent', 'dented', 'dents', 'hail dents', 'bump'],
-            'scratch': ['scratch', 'scratched', 'scrapes', 'scrape', 'mark', 'scrape lag gaya'],
-            'crack': ['crack', 'cracked', 'cracks'],
-            'glass_shatter': ['shattered', 'shatter', 'glass shatter', 'broken glass'],
-            'broken_part': ['broken', 'broke', 'broken off', 'damaged', 'damage', 'break'],
-            'missing_part': ['missing', 'fell off', 'came off'],
-            'water_damage': ['water damage', 'wet', 'liquid damage', 'water damaged'],
-            'stain': ['stain', 'stained'],
-            'none': ['none', 'no damage'],
-            'unknown': ['unknown']
+ISSUE_TYPES = [
+    "dent",
+    "scratch",
+    "crack",
+    "glass_shatter",
+    "broken_part",
+    "missing_part",
+    "torn_packaging",
+    "crushed_packaging",
+    "water_damage",
+    "stain",
+    "none",
+    "unknown",
+]
+
+OBJECT_PARTS = {
+    "car": [
+        "front_bumper",
+        "rear_bumper",
+        "door",
+        "hood",
+        "windshield",
+        "side_mirror",
+        "headlight",
+        "taillight",
+        "fender",
+        "quarter_panel",
+        "body",
+        "unknown",
+    ],
+    "laptop": [
+        "screen",
+        "keyboard",
+        "trackpad",
+        "hinge",
+        "lid",
+        "corner",
+        "port",
+        "base",
+        "body",
+        "unknown",
+    ],
+    "package": [
+        "box",
+        "package_corner",
+        "package_side",
+        "seal",
+        "label",
+        "contents",
+        "item",
+        "unknown",
+    ],
+}
+
+CLAIM_KEYWORDS = {
+    "car": {
+        "issueType": {
+            "dent": ["dent", "dented", "dents", "hail dents", "bump"],
+            "scratch": ["scratch", "scratched", "scrapes", "scrape", "mark"],
+            "crack": ["crack", "cracked", "cracks"],
+            "glass_shatter": ["shattered", "shatter", "glass shatter", "broken glass"],
+            "broken_part": ["broken", "broke", "broken off", "damaged", "damage", "break"],
+            "missing_part": ["missing", "fell off", "came off"],
+            "water_damage": ["water damage", "wet", "liquid damage", "water damaged"],
+            "stain": ["stain", "stained"],
+            "none": ["none", "no damage"],
+            "unknown": ["unknown"],
         },
-        'objectParts': [
-            'front bumper',
-            'rear bumper',
-            'headlight',
-            'taillight',
-            'windshield',
-            'side mirror',
-            'door',
-            'hood',
-            'fender',
-            'quarter panel',
-            'body',
-            'unknown',
-        ],
+        "objectParts": OBJECT_PARTS["car"],
     },
-    'laptop': {
-        'issueType': {
-            'dent': ['dent', 'dented', 'dents'],
-            'scratch': ['scratch', 'scratched', 'scrapes', 'scrape', 'mark'],
-            'crack': ['crack', 'cracked', 'cracks'],
-            'glass_shatter': ['shattered', 'shatter', 'glass shatter', 'broken glass'],
-            'broken_part': ['broken', 'broke', 'broken off', 'damaged', 'damage', 'break'],
-            'missing_part': ['missing', 'fell off', 'came off', 'keys missing', 'key missing'],
-            'water_damage': ['water damage', 'wet', 'liquid damage', 'water damaged'],
-            'stain': ['stain', 'stained', 'sticky'],
-            'none': ['none', 'no damage'],
-            'unknown': ['unknown']
+    "laptop": {
+        "issueType": {
+            "dent": ["dent", "dented", "dents"],
+            "scratch": ["scratch", "scratched", "scrapes", "scrape", "mark"],
+            "crack": ["crack", "cracked", "cracks"],
+            "glass_shatter": ["shattered", "shatter", "glass shatter", "broken glass"],
+            "broken_part": ["broken", "broke", "broken off", "damaged", "damage", "break"],
+            "missing_part": ["missing", "fell off", "came off", "keys missing", "key missing"],
+            "water_damage": ["water damage", "wet", "liquid damage", "water damaged"],
+            "stain": ["stain", "stained", "sticky"],
+            "none": ["none", "no damage"],
+            "unknown": ["unknown"],
         },
-        'objectParts': [
-            'screen',
-            'keyboard',
-            'hinge',
-            'trackpad',
-            'body',
-            'lid',
-            'base',
-            'corner',
-            'port',
-            'unknown',
-        ],
+        "objectParts": OBJECT_PARTS["laptop"],
     },
-    'package': {
-        'issueType': {
-            'torn_packaging': ['torn', 'torn open', 'open', 'phati', 'phata', 'opened'],
-            'crushed_packaging': ['crushed', 'crush', 'dented', 'dent', 'crease', 'creased'],
-            'water_damage': ['water damage', 'wet', 'water damaged', 'liquid damage'],
-            'stain': ['stain', 'stained', 'oily mark', 'oily', 'unreadable'],
-            'none': ['none', 'no damage'],
-            'unknown': ['unknown', 'missing', 'broken']
+    "package": {
+        "issueType": {
+            "torn_packaging": ["torn", "torn open", "open", "phati", "phata", "opened"],
+            "crushed_packaging": ["crushed", "crush", "dented", "dent", "crease", "creased"],
+            "water_damage": ["water damage", "wet", "water damaged", "liquid damage"],
+            "stain": ["stain", "stained", "oily mark", "oily", "unreadable"],
+            "none": ["none", "no damage"],
+            "unknown": ["unknown", "missing", "broken"],
         },
-        'objectParts': [
-            'box',
-            'side',
-            'seal',
-            'label',
-            'corner',
-            'contents',
-            'item',
-            'unknown',
-        ],
+        "objectParts": OBJECT_PARTS["package"],
     },
 }
 
-def main() -> None:
-    image_data = build_image_data()
-    OUTPUT_PATH.write_text(
-        json.dumps(image_data, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)} with {len(image_data)} users.")
-
 
 def build_client() -> OpenAI:
-    api_key = "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"
+    api_key = "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"
     if not api_key:
         raise RuntimeError(
             "Set OPENROUTER_API_KEY or OPENAI_API_KEY before running code/llm_client.py."
@@ -135,6 +169,54 @@ def build_client() -> OpenAI:
         base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
         api_key=api_key,
     )
+
+
+def read_csv_rows(csv_path: Path) -> list[dict[str, str]]:
+    if not csv_path.exists():
+        return []
+
+    rows: list[dict[str, str]] = []
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            rows.append(row)
+    return rows
+
+
+def read_claim_rows(csv_path: Path | None = None) -> list[dict[str, str]]:
+    path = csv_path or DEFAULT_CLAIMS_PATH
+    rows = read_csv_rows(path)
+    if rows:
+        return rows
+    return read_csv_rows(DEFAULT_SAMPLE_PATH)
+
+
+@lru_cache(maxsize=1)
+def load_user_history() -> dict[str, dict[str, str]]:
+    history_path = DATASET_DIR / "user_history.csv"
+    rows = read_csv_rows(history_path)
+    history: dict[str, dict[str, str]] = {}
+    for row in rows:
+        user_id = (row.get("user_id") or "").strip()
+        if user_id:
+            history[user_id] = row
+    return history
+
+
+@lru_cache(maxsize=1)
+def load_evidence_requirements() -> list[dict[str, str]]:
+    return read_csv_rows(DATASET_DIR / "evidence_requirements.csv")
+
+
+def row_key(row: dict[str, str]) -> str:
+    raw = "|".join(
+        [
+            (row.get("user_id") or "").strip(),
+            (row.get("image_paths") or "").strip(),
+            (row.get("user_claim") or "").strip(),
+            (row.get("claim_object") or "").strip().lower(),
+        ]
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
 
 
 def encode_image(path: Path) -> dict[str, Any]:
@@ -148,55 +230,22 @@ def encode_image(path: Path) -> dict[str, Any]:
     else:
         mime_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
         data = base64.b64encode(path.read_bytes()).decode("ascii")
+
     return {
         "type": "image_url",
         "image_url": {"url": f"data:{mime_type};base64,{data}"},
     }
 
 
-@lru_cache(maxsize=1)
-def load_user_history() -> dict[str, dict[str, str]]:
-    history_path = DATASET_DIR / "user_history.csv"
-    if not history_path.exists():
-        return {}
-
-    history_rows: dict[str, dict[str, str]] = {}
-    with history_path.open("r", encoding="utf-8-sig", newline="") as handle:
-        for row in csv.DictReader(handle):
-            user_id = (row.get("user_id") or "").strip()
-            if user_id:
-                history_rows[user_id] = row
-    return history_rows
-
-
-def read_claim_rows() -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    csv_paths = []
-    if (DATASET_DIR / "claims.csv").exists():
-        csv_paths.append(DATASET_DIR / "claims.csv")
-    else:
-        csv_paths.append(DATASET_DIR / "sample_claims.csv")
-
-    for csv_path in csv_paths:
-        if not csv_path.exists():
-            continue
-        with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
-            for row in csv.DictReader(handle):
-                row["source_csv"] = csv_path.name
-                rows.append(row)
-    return rows
-
-
 def resolve_image_paths(image_paths: str) -> list[Path]:
     paths: list[Path] = []
     for raw_path in image_paths.split(";"):
-        raw_path = raw_path.strip()
-        if not raw_path:
+        candidate = raw_path.strip()
+        if not candidate:
             continue
-        path = DATASET_DIR / raw_path
+        path = DATASET_DIR / candidate
         if path.exists() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
             paths.append(path)
-            break  # only read the first valid image for each case
     return paths
 
 
@@ -216,29 +265,47 @@ def extract_json(text: str) -> dict[str, Any]:
 def normalize_list(value: Any) -> list[str]:
     if value is None:
         return []
-    if isinstance(value, str):
-        return [value] if value else []
     if isinstance(value, list):
         return [str(item).strip() for item in value if str(item).strip()]
-    return [str(value).strip()] if str(value).strip() else []
+    if isinstance(value, str):
+        return [value] if value.strip() else []
+    text = str(value).strip()
+    return [text] if text else []
 
 
-def expand_risk_flag_values(value: Any) -> list[str]:
+def expand_semicolon_values(value: Any) -> list[str]:
     values: list[str] = []
     for item in normalize_list(value):
-        for flag in str(item).split(";"):
-            flag = flag.strip().lower()
-            if flag:
-                values.append(flag)
+        for token in str(item).split(";"):
+            token = token.strip()
+            if token:
+                values.append(token)
     return values
+
+
+def merge_ordered_unique(values: list[str], order: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        normalized = value.strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        if normalized not in order:
+            continue
+        seen.add(normalized)
+        ordered.append(normalized)
+    return sorted(ordered, key=lambda item: order.index(item))
 
 
 def normalize_risk_flags(value: Any) -> list[str]:
     flags = []
-    for flag in expand_risk_flag_values(value):
-        if flag in RISK_FLAG_SET:
-            flags.append(flag)
-    return merge_risk_flags(flags)
+    for item in expand_semicolon_values(value):
+        normalized = item.strip().lower()
+        if normalized in RISK_FLAG_SET and normalized != "none":
+            flags.append(normalized)
+    if not flags:
+        return ["none"]
+    return merge_ordered_unique(flags, RISK_FLAG_ORDER)
 
 
 def normalize_bool(value: Any) -> bool:
@@ -260,117 +327,95 @@ def normalize_claim_status(value: Any) -> str:
 
 
 def normalize_supporting_image_ids(value: Any) -> str:
-    if isinstance(value, list):
-        items = [str(item).strip() for item in value if str(item).strip()]
-        if not items or any(item.lower() == "none" for item in items):
-            return "none"
-        return ";".join(items)
-    s = str(value or "none").strip()
-    if not s or s.lower() == "none":
-        return "none"
-    return s
+    ids = [item for item in expand_semicolon_values(value) if item.lower() != "none"]
+    return ";".join(ids) if ids else "none"
 
 
-def merge_risk_flags(*flag_groups: Any) -> list[str]:
-    merged: list[str] = []
+def normalize_object_part(value: Any, claim_object: str) -> str:
+    normalized = str(value or "unknown").strip().lower()
+    allowed = OBJECT_PARTS.get(claim_object, ["unknown"])
+    return normalized if normalized in allowed else "unknown"
+
+
+def normalize_issue_type(value: Any) -> str:
+    normalized = str(value or "unknown").strip().lower()
+    return normalized if normalized in ISSUE_TYPES else "unknown"
+
+
+def merge_text(values: list[str]) -> str:
     seen: set[str] = set()
-
-    for group in flag_groups:
-        for flag in expand_risk_flag_values(group):
-            if flag == "none" or flag not in RISK_FLAG_SET or flag in seen:
-                continue
-            seen.add(flag)
-            merged.append(flag)
-
-    if not merged:
-        return ["none"]
-
-    merged.sort(key=RISK_FLAG_ORDER.index)
-    return merged
+    ordered: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        key = text.lower()
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        ordered.append(text)
+    return " | ".join(ordered)
 
 
 def split_history_flags(raw_flags: str) -> list[str]:
-    if not raw_flags:
-        return []
-    return [
-        flag.strip().lower()
-        for flag in raw_flags.split(";")
-        if flag.strip().lower() in RISK_FLAG_SET
-    ]
+    flags: list[str] = []
+    for token in (raw_flags or "").split(";"):
+        normalized = token.strip().lower()
+        if normalized in RISK_FLAG_SET and normalized != "none":
+            flags.append(normalized)
+    if not flags:
+        return ["none"]
+    return merge_ordered_unique(flags, RISK_FLAG_ORDER)
 
 
 def determine_risk_flags(user_id: str) -> list[str]:
-    """Read user_history.csv and return the history-based risk flags for a user."""
-
     row = load_user_history().get(user_id.strip())
     if not row:
         return ["none"]
-
-    flags = split_history_flags(row.get("history_flags", ""))
-    return merge_risk_flags(flags)
+    return split_history_flags(row.get("history_flags", ""))
 
 
-def normalize_analysis(payload: dict[str, Any], claim_object: str) -> dict[str, Any]:
-    return {
-        "evidence_standard_met": normalize_bool(payload.get("evidence_standard_met")),
-        "evidence_standard_met_reason": str(payload.get("evidence_standard_met_reason") or "").strip(),
-        "issue_type": str(payload.get("issue_type") or "").strip().lower(),
-        "object_part": str(payload.get("object_part") or "").strip().lower(),
-        "claim_status": normalize_claim_status(payload.get("claim_status")),
-        "claim_status_justification": str(payload.get("claim_status_justification") or "").strip(),
-        "supporting_image_ids": normalize_supporting_image_ids(payload.get("supporting_image_ids")),
-        "valid_image": normalize_bool(payload.get("valid_image")),
-        "severity": normalize_severity(payload.get("severity")),
-        # Keep metadata and risk flags
-        "risk_flags": normalize_risk_flags(payload.get("risk_flags")),
-        "image_paths": normalize_list(payload.get("image_paths")),
-        "source_csv": normalize_list(payload.get("source_csv")),
-        "claim_object": str(payload.get("claim_object") or claim_object),
-    }
-
-
-def analyze_claim_images(
-    client: OpenAI, row: dict[str, str], image_paths: list[Path]
-) -> dict[str, Any]:
-    claim_object = row.get("claim_object", "").strip().lower()
-    allowed = dataKeywords.get(claim_object, {})
-    allowed_issue_types = list(allowed.get("issueType", {}).keys()) if isinstance(allowed.get("issueType"), dict) else list(allowed.get("issueType", []))
-    allowed_object_parts = allowed.get("objectParts", [])
-
+def build_prompt(row: dict[str, str], image_paths: list[Path]) -> str:
+    claim_object = (row.get("claim_object") or "").strip().lower()
+    allowed = CLAIM_KEYWORDS.get(claim_object, {})
     prompt = {
         "task": "Analyze the submitted claim images and return only valid JSON matching the required schema.",
         "user_id": row.get("user_id", ""),
         "claim_object": claim_object,
         "user_claim": row.get("user_claim", ""),
         "image_ids": [path.stem for path in image_paths],
-        "image_paths": [
-            path.relative_to(DATASET_DIR).as_posix() for path in image_paths
+        "image_paths": [path.relative_to(DATASET_DIR).as_posix() for path in image_paths],
+        "history_flags": determine_risk_flags(row.get("user_id", "")),
+        "allowed_issue_type_values": list(allowed.get("issueType", {}).keys()) if isinstance(allowed.get("issueType"), dict) else [],
+        "allowed_object_part_values": OBJECT_PARTS.get(claim_object, ["unknown"]),
+        "evidence_requirements": [
+            requirement
+            for requirement in load_evidence_requirements()
+            if (requirement.get("claim_object") or "all").strip().lower() in {"all", claim_object}
         ],
-        "allowed_issue_type_values": allowed_issue_types,
-        "allowed_object_part_values": allowed_object_parts,
         "required_schema": {
-            "evidence_standard_met": "boolean (true if the image set is sufficient to evaluate the claim; otherwise false)",
-            "evidence_standard_met_reason": "string (short reason for the evidence decision)",
-            "issue_type": "string (must be one of the allowed_issue_type_values or unknown)",
-            "object_part": "string (must be one of the allowed_object_part_values or unknown)",
-            "claim_status": "string (supported | contradicted | not_enough_information)",
-            "claim_status_justification": "string (concise image-grounded explanation; mention relevant image IDs when helpful)",
-            "supporting_image_ids": "string (image IDs supporting the decision, separated by semicolons; use none if no image is sufficient)",
-            "valid_image": "boolean (true if the image set is usable for automated review; otherwise false)",
-            "severity": "string (none | low | medium | high | unknown)",
+            "evidence_standard_met": "boolean",
+            "evidence_standard_met_reason": "string",
             "risk_flags": RISK_FLAG_ORDER,
+            "issue_type": f"one of {ISSUE_TYPES}",
+            "object_part": f"one of {OBJECT_PARTS.get(claim_object, ['unknown'])}",
+            "claim_status": "supported | contradicted | not_enough_information",
+            "claim_status_justification": "string",
+            "supporting_image_ids": "string separated by semicolons or none",
+            "valid_image": "boolean",
+            "severity": "none | low | medium | high | unknown",
         },
         "rules": [
-            "Base evidence_standard_met, evidence_standard_met_reason, issue_type, object_part, claim_status, claim_status_justification, supporting_image_ids, valid_image, and severity on the images.",
-            "Choose issue_type and object_part from the allowed lists when they fit.",
-            "For supporting_image_ids, separate multiple image IDs using semicolons (e.g., img_1;img_2), or use 'none' if no image is sufficient.",
-            "YOU MUST output ONLY valid JSON. Do not include any explanation, safety text, markdown enclosing, or extra words. If you cannot comply, output: {'error': 'invalid'}",
+            "Use the images as the primary source of truth.",
+            "Use the user claim to decide what object and issue should be checked.",
+            "Use user history only as risk context; do not override clear visual evidence.",
+            "Return only valid JSON and no markdown.",
         ],
     }
+    return json.dumps(prompt, ensure_ascii=True)
 
-    content: list[dict[str, Any]] = [
-        {"type": "text", "text": json.dumps(prompt, ensure_ascii=True)}
-    ]
+
+def analyze_claim_images(client: OpenAI, row: dict[str, str], image_paths: list[Path]) -> dict[str, Any]:
+    claim_object = (row.get("claim_object") or "").strip().lower()
+    content: list[dict[str, Any]] = [{"type": "text", "text": build_prompt(row, image_paths)}]
     content.extend(encode_image(path) for path in image_paths)
 
     completion = client.chat.completions.create(
@@ -380,87 +425,99 @@ def analyze_claim_images(
     )
     text = completion.choices[0].message.content or "{}"
     payload = extract_json(text)
-    payload["image_paths"] = [
-        path.relative_to(DATASET_DIR).as_posix() for path in image_paths
-    ]
-    payload["source_csv"] = [row.get("source_csv", "")]
-    payload["claim_object"] = claim_object
-    analysis = normalize_analysis(payload, claim_object)
-    analysis["risk_flags"] = merge_risk_flags(
-        analysis.get("risk_flags", []),
-        determine_risk_flags(row.get("user_id", "")),
+
+    analysis = {
+        "evidence_standard_met": normalize_bool(payload.get("evidence_standard_met")),
+        "evidence_standard_met_reason": str(payload.get("evidence_standard_met_reason") or "").strip(),
+        "risk_flags": normalize_risk_flags(payload.get("risk_flags")),
+        "issue_type": normalize_issue_type(payload.get("issue_type")),
+        "object_part": normalize_object_part(payload.get("object_part"), claim_object),
+        "claim_status": normalize_claim_status(payload.get("claim_status")),
+        "claim_status_justification": str(payload.get("claim_status_justification") or "").strip(),
+        "supporting_image_ids": normalize_supporting_image_ids(payload.get("supporting_image_ids")),
+        "valid_image": normalize_bool(payload.get("valid_image")),
+        "severity": normalize_severity(payload.get("severity")),
+    }
+
+    analysis["risk_flags"] = normalize_risk_flags(
+        analysis["risk_flags"] + determine_risk_flags(row.get("user_id", ""))
     )
     return analysis
 
 
-def build_image_data() -> dict[str, dict[str, dict[str, Any]]]:
+def enrich_analysis(row: dict[str, str], analysis: dict[str, Any]) -> dict[str, str]:
+    claim_object = (row.get("claim_object") or "").strip().lower()
+    risk_flags = normalize_risk_flags(analysis.get("risk_flags"))
+    if not risk_flags:
+        risk_flags = ["none"]
+
+    return {
+        "user_id": row.get("user_id", "").strip(),
+        "image_paths": row.get("image_paths", "").strip(),
+        "user_claim": row.get("user_claim", "").strip(),
+        "claim_object": claim_object,
+        "evidence_standard_met": str(normalize_bool(analysis.get("evidence_standard_met"))).lower(),
+        "evidence_standard_met_reason": str(analysis.get("evidence_standard_met_reason") or "").strip(),
+        "risk_flags": ";".join(risk_flags),
+        "issue_type": normalize_issue_type(analysis.get("issue_type")),
+        "object_part": normalize_object_part(analysis.get("object_part"), claim_object),
+        "claim_status": normalize_claim_status(analysis.get("claim_status")),
+        "claim_status_justification": str(analysis.get("claim_status_justification") or "").strip(),
+        "supporting_image_ids": normalize_supporting_image_ids(analysis.get("supporting_image_ids")),
+        "valid_image": str(normalize_bool(analysis.get("valid_image"))).lower(),
+        "severity": normalize_severity(analysis.get("severity")),
+    }
+
+
+def build_image_data(csv_path: Path | None = None) -> dict[str, dict[str, str]]:
     client = build_client()
-    image_data: dict[str, dict[str, dict[str, Any]]] = {}
-    call_count = 0
+    rows = read_claim_rows(csv_path)
+    image_data: dict[str, dict[str, str]] = {}
 
-    for row in read_claim_rows():
-        user_id = row.get("user_id", "").strip()
-        claim_object = row.get("claim_object", "").strip().lower()
+    for row in rows:
         image_paths = resolve_image_paths(row.get("image_paths", ""))
-        if not user_id or not claim_object or not image_paths:
+        if not image_paths:
             continue
-
-        if call_count >= 49:
-            print("Reached maximum limit of 49 AI calls. Stopping execution.")
-            break
-
         analysis = analyze_claim_images(client, row, image_paths)
-        call_count += 1
-        user_bucket = image_data.setdefault(user_id, {})
-        if claim_object in user_bucket:
-            existing = user_bucket[claim_object]
-            existing["risk_flags"] = merge_risk_flags(
-                existing.get("risk_flags", []),
-                analysis.get("risk_flags", []),
-            )
-            for key in ("image_paths", "source_csv"):
-                existing[key] = sorted(set(existing.get(key, []) + analysis.get(key, [])))
-            
-            existing["evidence_standard_met"] = existing.get("evidence_standard_met", False) or analysis["evidence_standard_met"]
-            existing["valid_image"] = existing.get("valid_image", False) or analysis["valid_image"]
-            
-            existing["evidence_standard_met_reason"] = (existing.get("evidence_standard_met_reason", "") + " | " + analysis["evidence_standard_met_reason"]).strip(" | ")
-            existing["claim_status_justification"] = (existing.get("claim_status_justification", "") + " | " + analysis["claim_status_justification"]).strip(" | ")
-            
-            existing["issue_type"] = analysis["issue_type"] or existing.get("issue_type", "unknown")
-            existing["object_part"] = analysis["object_part"] or existing.get("object_part", "unknown")
-            
-            existing_ids = [x.strip() for x in existing.get("supporting_image_ids", "none").split(";") if x.strip() and x.strip().lower() != "none"]
-            new_ids = [x.strip() for x in analysis.get("supporting_image_ids", "none").split(";") if x.strip() and x.strip().lower() != "none"]
-            combined_ids = sorted(set(existing_ids + new_ids))
-            existing["supporting_image_ids"] = ";".join(combined_ids) if combined_ids else "none"
-            
-            status_order = ["not_enough_information", "contradicted", "supported"]
-            existing["claim_status"] = max(
-                existing.get("claim_status", "not_enough_information"),
-                analysis["claim_status"],
-                key=status_order.index
-            )
-            
-            severities = ["none", "low", "medium", "high", "unknown"]
-            existing["severity"] = max(
-                existing.get("severity", "unknown"),
-                analysis["severity"],
-                key=severities.index,
-            )
-        else:
-            user_bucket[claim_object] = analysis
+        key = row_key(row)
+        image_data[key] = enrich_analysis(row, analysis)
 
-        # Write intermediate data to JSON after each call
-        try:
-            OUTPUT_PATH.write_text(
-                json.dumps(image_data, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-        except Exception as e:
-            print(f"Warning: failed to write intermediate image_data to {OUTPUT_PATH.name}: {e}")
-
+    IMAGE_DATA_PATH.write_text(
+        json.dumps(image_data, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     return image_data
+
+
+def build_prediction_rows(csv_path: Path | None = None) -> list[dict[str, str]]:
+    rows = read_claim_rows(csv_path)
+    image_data = build_image_data(csv_path)
+    predictions: list[dict[str, str]] = []
+    for row in rows:
+        prediction = image_data.get(row_key(row))
+        if prediction is None:
+            prediction = enrich_analysis(
+                row,
+                {
+                    "evidence_standard_met": False,
+                    "evidence_standard_met_reason": "",
+                    "risk_flags": ["none"],
+                    "issue_type": "unknown",
+                    "object_part": "unknown",
+                    "claim_status": "not_enough_information",
+                    "claim_status_justification": "",
+                    "supporting_image_ids": "none",
+                    "valid_image": False,
+                    "severity": "unknown",
+                },
+            )
+        predictions.append(prediction)
+    return predictions
+
+
+def main() -> None:
+    build_image_data(DEFAULT_CLAIMS_PATH)
+    print(f"Wrote {IMAGE_DATA_PATH.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":
