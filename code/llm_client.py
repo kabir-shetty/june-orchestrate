@@ -159,7 +159,7 @@ CLAIM_KEYWORDS = {
 
 
 def build_client() -> OpenAI:
-    api_key = "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"
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError(
             "Set OPENROUTER_API_KEY or OPENAI_API_KEY before running code/llm_client.py."
