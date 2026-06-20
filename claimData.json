@@ -2,10 +2,9 @@
   "user_002": {
     "car": {
       "issueType": [
-        "damaged"
+        "broken_part"
       ],
       "objectParts": [
-        "bumper",
         "front bumper",
         "headlight"
       ]
@@ -17,7 +16,6 @@
         "dent"
       ],
       "objectParts": [
-        "bumper",
         "rear bumper"
       ]
     }
@@ -25,11 +23,10 @@
   "user_004": {
     "car": {
       "issueType": [
-        "damaged",
-        "dented"
+        "dent",
+        "broken_part"
       ],
       "objectParts": [
-        "bumper",
         "rear bumper",
         "door"
       ]
@@ -38,9 +35,9 @@
   "user_005": {
     "car": {
       "issueType": [
-        "damage",
         "dent",
-        "scratch"
+        "scratch",
+        "broken_part"
       ],
       "objectParts": [
         "door"
@@ -50,20 +47,19 @@
   "user_007": {
     "car": {
       "issueType": [
-        "broken",
-        "missing"
+        "broken_part",
+        "missing_part"
       ],
       "objectParts": [
-        "side mirror",
-        "mirror"
+        "side mirror"
       ]
     }
   },
   "user_008": {
     "car": {
       "issueType": [
-        "damage",
-        "hail dents"
+        "dent",
+        "broken_part"
       ],
       "objectParts": [
         "windshield",
@@ -74,8 +70,7 @@
   "user_011": {
     "car": {
       "issueType": [
-        "broken",
-        "broke"
+        "broken_part"
       ],
       "objectParts": [
         "headlight"
@@ -85,8 +80,8 @@
   "user_014": {
     "car": {
       "issueType": [
-        "damage",
-        "crack"
+        "crack",
+        "broken_part"
       ],
       "objectParts": [
         "windshield"
@@ -96,8 +91,8 @@
   "user_016": {
     "car": {
       "issueType": [
-        "damaged",
-        "dented"
+        "dent",
+        "broken_part"
       ],
       "objectParts": [
         "door"
@@ -107,9 +102,8 @@
   "user_017": {
     "laptop": {
       "issueType": [
-        "cracked",
         "crack",
-        "damage"
+        "broken_part"
       ],
       "objectParts": [
         "screen",
@@ -121,11 +115,9 @@
   "user_018": {
     "laptop": {
       "issueType": [
-        "broken",
-        "missing",
-        "damage",
-        "liquid damage",
-        "keys missing"
+        "broken_part",
+        "missing_part",
+        "water_damage"
       ],
       "objectParts": [
         "keyboard"
@@ -135,10 +127,8 @@
   "user_019": {
     "laptop": {
       "issueType": [
-        "cracked",
         "crack",
-        "broke",
-        "damage"
+        "broken_part"
       ],
       "objectParts": [
         "screen",
@@ -149,24 +139,22 @@
   "user_020": {
     "laptop": {
       "issueType": [
-        "cracked",
-        "damage"
+        "crack",
+        "broken_part"
       ],
       "objectParts": [
         "screen",
         "keyboard",
         "hinge",
-        "trackpad",
-        "palm-rest"
+        "trackpad"
       ]
     }
   },
   "user_022": {
     "laptop": {
       "issueType": [
-        "cracked",
         "crack",
-        "damaged"
+        "broken_part"
       ],
       "objectParts": [
         "screen",
@@ -178,9 +166,7 @@
   "user_025": {
     "laptop": {
       "issueType": [
-        "missing",
-        "came off",
-        "keys missing"
+        "missing_part"
       ],
       "objectParts": [
         "keyboard"
@@ -190,23 +176,20 @@
   "user_026": {
     "laptop": {
       "issueType": [
-        "cracked",
         "crack"
       ],
       "objectParts": [
         "screen",
         "keyboard",
-        "body",
-        "outer body"
+        "body"
       ]
     }
   },
   "user_027": {
     "laptop": {
       "issueType": [
-        "damage",
-        "liquid damage",
-        "stained",
+        "broken_part",
+        "water_damage",
         "stain"
       ],
       "objectParts": [
@@ -218,9 +201,7 @@
   "user_028": {
     "laptop": {
       "issueType": [
-        "broken",
-        "damaged",
-        "damage"
+        "broken_part"
       ],
       "objectParts": [
         "screen",
@@ -232,12 +213,10 @@
   "user_029": {
     "package": {
       "issueType": [
-        "crushed",
-        "open",
-        "damage"
+        "torn_packaging",
+        "crushed_packaging"
       ],
       "objectParts": [
-        "package",
         "corner",
         "item"
       ]
@@ -246,13 +225,11 @@
   "user_030": {
     "package": {
       "issueType": [
-        "torn",
-        "torn open",
-        "open",
-        "missing"
+        "torn_packaging",
+        "unknown"
       ],
       "objectParts": [
-        "package",
+        "side",
         "seal",
         "item"
       ]
@@ -261,13 +238,11 @@
   "user_031": {
     "package": {
       "issueType": [
-        "wet",
-        "damage",
-        "unreadable"
+        "water_damage",
+        "stain"
       ],
       "objectParts": [
         "box",
-        "delivery box",
         "label",
         "contents"
       ]
@@ -276,25 +251,21 @@
   "user_032": {
     "package": {
       "issueType": [
-        "damage",
-        "missing"
+        "torn_packaging",
+        "unknown"
       ],
       "objectParts": [
-        "package",
-        "box",
-        "wrapping"
+        "box"
       ]
     }
   },
   "user_033": {
     "package": {
       "issueType": [
-        "crushed"
+        "crushed_packaging"
       ],
       "objectParts": [
-        "package",
         "box",
-        "cardboard box",
         "corner"
       ]
     }
@@ -302,12 +273,9 @@
   "user_034": {
     "package": {
       "issueType": [
-        "crushed",
-        "crush",
-        "damage"
+        "crushed_packaging"
       ],
       "objectParts": [
-        "package",
         "box"
       ]
     }
@@ -315,27 +283,19 @@
   "user_036": {
     "package": {
       "issueType": [
-        "wet",
-        "water damaged",
-        "water damage",
-        "damaged",
-        "damage"
+        "water_damage"
       ],
       "objectParts": [
-        "package",
-        "box",
-        "delivery box"
+        "box"
       ]
     }
   },
   "user_037": {
     "package": {
       "issueType": [
-        "crushed",
-        "damage"
+        "crushed_packaging"
       ],
       "objectParts": [
-        "package",
         "item"
       ]
     }
@@ -343,12 +303,10 @@
   "user_038": {
     "package": {
       "issueType": [
-        "damaged",
-        "broken"
+        "unknown"
       ],
       "objectParts": [
         "box",
-        "item inside",
         "item"
       ]
     }
@@ -356,13 +314,10 @@
   "user_039": {
     "package": {
       "issueType": [
-        "water damage",
-        "damage",
-        "stain",
-        "oily mark"
+        "water_damage",
+        "stain"
       ],
       "objectParts": [
-        "package",
         "contents"
       ]
     }
@@ -370,11 +325,9 @@
   "user_040": {
     "package": {
       "issueType": [
-        "torn",
-        "damage"
+        "torn_packaging"
       ],
       "objectParts": [
-        "package",
         "seal"
       ]
     }
@@ -382,11 +335,9 @@
   "user_041": {
     "car": {
       "issueType": [
-        "scratched",
         "scratch"
       ],
       "objectParts": [
-        "bumper",
         "front bumper"
       ]
     }
@@ -400,20 +351,17 @@
   "user_043": {
     "car": {
       "issueType": [
-        "damaged",
-        "damage"
+        "broken_part"
       ],
       "objectParts": [
-        "car body",
-        "body panel"
+        "body"
       ]
     }
   },
   "user_044": {
     "laptop": {
       "issueType": [
-        "broken",
-        "damage"
+        "broken_part"
       ],
       "objectParts": [
         "screen"
@@ -422,7 +370,9 @@
   },
   "user_045": {
     "laptop": {
-      "issueType": [],
+      "issueType": [
+        "dent"
+      ],
       "objectParts": [
         "screen",
         "keyboard",
@@ -434,22 +384,19 @@
   "user_046": {
     "car": {
       "issueType": [
-        "damage",
-        "broken"
+        "broken_part"
       ],
       "objectParts": [
-        "bumper",
         "side mirror",
-        "door",
-        "mirror"
+        "door"
       ]
     }
   },
   "user_047": {
     "car": {
       "issueType": [
-        "damage",
-        "dented"
+        "dent",
+        "broken_part"
       ],
       "objectParts": [
         "door"

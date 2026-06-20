@@ -14,26 +14,19 @@ def main():
     # objectParts captures the parts mentioned in the claim.
     claimData = {
         'car': {
-            'issueType': [
-                'damaged',
-                'damage',
-                'broken',
-                'broke',
-                'cracked',
-                'crack',
-                'crushed',
-                'dented',
-                'dent',
-                'scratched',
-                'scratch',
-                'shattered',
-                'missing',
-                'broken off',
-                'hail dents',
-                'water damage',
-            ],
+            'issueType': {
+                'dent': ['dent', 'dented', 'dents', 'hail dents', 'bump'],
+                'scratch': ['scratch', 'scratched', 'scrapes', 'scrape', 'mark', 'scrape lag gaya'],
+                'crack': ['crack', 'cracked', 'cracks'],
+                'glass_shatter': ['shattered', 'shatter', 'glass shatter', 'broken glass'],
+                'broken_part': ['broken', 'broke', 'broken off', 'damaged', 'damage', 'break'],
+                'missing_part': ['missing', 'fell off', 'came off'],
+                'water_damage': ['water damage', 'wet', 'liquid damage', 'water damaged'],
+                'stain': ['stain', 'stained'],
+                'none': ['none', 'no damage'],
+                'unknown': ['unknown']
+            },
             'objectParts': [
-                'bumper',
                 'front bumper',
                 'rear bumper',
                 'headlight',
@@ -42,72 +35,56 @@ def main():
                 'side mirror',
                 'door',
                 'hood',
-                'car body',
-                'body panel',
-                'mirror',
-                'glass',
+                'fender',
+                'quarter panel',
+                'body',
+                'unknown',
             ],
         },
         'laptop': {
-            'issueType': [
-                'cracked',
-                'crack',
-                'broken',
-                'broke',
-                'missing',
-                'damaged',
-                'damage',
-                'liquid damage',
-                'stained',
-                'stain',
-                'came off',
-                'keys missing',
-            ],
+            'issueType': {
+                'dent': ['dent', 'dented', 'dents'],
+                'scratch': ['scratch', 'scratched', 'scrapes', 'scrape', 'mark'],
+                'crack': ['crack', 'cracked', 'cracks'],
+                'glass_shatter': ['shattered', 'shatter', 'glass shatter', 'broken glass'],
+                'broken_part': ['broken', 'broke', 'broken off', 'damaged', 'damage', 'break'],
+                'missing_part': ['missing', 'fell off', 'came off', 'keys missing', 'key missing'],
+                'water_damage': ['water damage', 'wet', 'liquid damage', 'water damaged'],
+                'stain': ['stain', 'stained', 'sticky'],
+                'none': ['none', 'no damage'],
+                'unknown': ['unknown']
+            },
             'objectParts': [
                 'screen',
                 'keyboard',
-                'key',
-                'keycap',
                 'hinge',
                 'trackpad',
                 'body',
                 'lid',
-                'outer body',
+                'base',
                 'corner',
-                'palm-rest',
-                'palm rest',
+                'port',
+                'unknown',
             ],
         },
         'package': {
-            'issueType': [
-                'crushed',
-                'crush',
-                'torn',
-                'torn open',
-                'open',
-                'wet',
-                'water damaged',
-                'water damage',
-                'damaged',
-                'damage',
-                'stain',
-                'oily mark',
-                'unreadable',
-                'missing',
-                'broken',
-            ],
+            'issueType': {
+                'torn_packaging': ['torn', 'torn open', 'open', 'phati', 'phata', 'opened'],
+                'crushed_packaging': ['crushed', 'crush', 'dented', 'dent', 'crease', 'creased'],
+                'water_damage': ['water damage', 'wet', 'water damaged', 'liquid damage'],
+                'stain': ['stain', 'stained', 'oily mark', 'oily', 'unreadable'],
+                'none': ['none', 'no damage'],
+                'unknown': ['unknown', 'missing', 'broken']
+            },
             'objectParts': [
-                'package',
                 'box',
-                'delivery box',
-                'cardboard box',
+                'side',
                 'seal',
                 'label',
                 'corner',
                 'contents',
-                'item inside',
                 'item',
-                'wrapping',
+                'unknown',
             ],
         },
     }
@@ -133,7 +110,7 @@ def main():
     for user_id, claim in claims.items():
         claim_object = claim['claim_object']
         user_claim = claim['user_claim']
-        object_data = claimData.get(claim_object, {'issueType': [], 'objectParts': []})
+        object_data = claimData.get(claim_object, {'issueType': {}, 'objectParts': []})
 
         claimDataByUser[user_id] = {
             claim_object: {
@@ -149,10 +126,23 @@ def main():
 
 def find_present_keywords(text, keywords):
     present = []
+    if not text or not keywords:
+        return present
+
+    text_lower = text.lower()
+    if isinstance(keywords, dict):
+        for issue_type, kw_list in keywords.items():
+            for kw in kw_list:
+                pattern = r'\b' + re.escape(kw.lower()) + r'\b'
+                if re.search(pattern, text_lower):
+                    if issue_type not in present:
+                        present.append(issue_type)
+                    break
+        return present
 
     for keyword in keywords:
         pattern = r'\b' + re.escape(keyword.lower()) + r'\b'
-        if re.search(pattern, text.lower()) and keyword not in present:
+        if re.search(pattern, text_lower) and keyword not in present:
             present.append(keyword)
 
     return present
