@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATASET_DIR = REPO_ROOT / "dataset"
-IMAGE_DATA_PATH = REPO_ROOT / "imageData.json"
+IMAGE_DATA_PATH = DATASET_DIR / "imageData.json"
 DEFAULT_CLAIMS_PATH = DATASET_DIR / "claims.csv"
 DEFAULT_SAMPLE_PATH = DATASET_DIR / "sample_claims.csv"
 MODEL = os.getenv("OPENROUTER_MODEL", "nex-agi/nex-n2-pro:free")

@@ -6,7 +6,7 @@ import pandas as pd
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATASET_DIR = ROOT_DIR / 'dataset'
 CLAIMS_CSV = DATASET_DIR / 'claims.csv'
-CLAIM_DATA_JSON = ROOT_DIR / 'claimData.json'
+CLAIM_DATA_JSON = DATASET_DIR / 'claimData.json'
 
 def main():
     # Important claim data grouped by object type.

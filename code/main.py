@@ -11,7 +11,7 @@ DATASET_OUTPUT_PATH = DATASET_DIR / "output.csv"
 
 
 def write_output_csv(rows: list[dict[str, str]]) -> None:
-    for output_path in (ROOT_OUTPUT_PATH, DATASET_OUTPUT_PATH):
+    for output_path in (ROOT_OUTPUT_PATH):
         with output_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=OUTPUT_HEADERS)
             writer.writeheader()
