@@ -1,96 +1,70 @@
 ﻿# Damage Claim Agent
-#### Video Demo: 
-#### Description:
-----------------
-June Orchestrate is an orchestration framework designed to coordinate data ingestion, transformation, and delivery workflows for event-driven or batch processing systems. The project provides a modular pipeline where independent components (collectors, transformers, enrichers, and sinks) connect through clearly defined interfaces so teams can add, adapt, and scale parts of the pipeline without changing the whole system.
+## Video Demo: 
+## Description:
 
-Goals
------
-- Provide a readable, maintainable orchestration backbone for data pipelines.
-- Encourage modular components with pluggable adapters for inputs and outputs.
-- Support observability, retry semantics, and graceful failure handling.
-- Make it easy to run locally for development and test in CI/CD for automated validation.
+### High-level overview:
+   - Damage Claim Agent is a service that automates intake and triage of property damage claims. It accepts claim inputs (images, forms, metadata), validates and extracts key information, classifies severity, and routes cases to automated workflows or human reviewers. Outputs structured claim records and processing status so downstream systems can handle payouts, repairs, or investigations. Built for teams that need to scale claim handling, speed decisions, and keep auditable processing logs.
 
-High-level architecture
------------------------
-The system is organized into distinct layers so each responsibility is isolated:
+### Pipeline overview:
+   - intake
+   - preprocess
+   - analyze via LLM
+   - normalize/enrich
+   - persist outputs
 
-1. Input/Collector layer
-   - Responsible for receiving raw events or batches from sources (e.g., webhooks, message queues, filesystems, scheduled pulls).
-   - Implements adapters that normalize source-specific payloads into a common internal event format.
+### High-level pipeline flow:
 
-2. Orchestration layer
-   - Routes events through a configurable directed flow. This layer enforces ordering, concurrency limits, backpressure, and retries.
-   - Maintains state for in-flight events and coordinates durable acknowledgements when sinks confirm successful processing.
+   - Intake: dataset/claims.csv or dataset/sample_claims.csv contains rows. Each row: user_id, image_paths (semicolon-separated relative paths under dataset/images), user_claim (text), claim_object (car/laptop/package).
+   - Preprocess: main.py and llm_client.read_claim_rows load CSV rows. resolve_image_paths verifies image files exist and filters allowed extensions.
+   - Analyze: llm_client.build_prompt assembles JSON prompt with claim text, image IDs, evidence rules, allowed enums, user history context. encode_image embeds images as base64 data parts. analyze_claim_images calls OpenAI/OpenRouter chat.completions with model set by OPENROUTER_MODEL and API key from env. LLM must return strict JSON; extract_json enforces and parses it.
+   - Normalize/enrich: analysis fields normalized (booleans, severity, risk_flags, enums, supporting_image_ids). determine_risk_flags merges user history risk context. enrich_analysis combines original row + normalized analysis into final record.
+   - Persist: build_image_data writes dataset/imageData.json mapping stable row_key -> enriched analysis. build_prediction_rows returns list of CSV-ready rows matching OUTPUT_HEADERS. main.py writes output.csv at repo root (and prints path).
+   - Consumers: output.csv and dataset/output.csv provide tabular exports for downstream systems. imageData.json provides raw analysis structure keyed by row fingerprint.
 
-3. Processing/Transformation layer
-   - Hosts user-defined transformations, enrichers, and validators that operate on normalized events.
-   - Transformations are expressed as independent functions or modules that can be composed into a chain.
+### File-by-file (what each file is for)
 
-4. Sink/Delivery layer
-   - Persists or forwards processed data to destinations: databases, object stores, analytics systems, or external APIs.
-   - Sinks provide idempotency keys and acknowledgement paths so the orchestration layer can make processing durable.
+   ##### code/main.py
+   - Orchestrator script. Entrypoint for CLI run. Calls build_prediction_rows(DEFAULT_CLAIMS_PATH) then writes output CSV. Minimal logic: write_output_csv uses OUTPUT_HEADERS to guarantee column order. One-shot script for creating predictions CSV from claims dataset.
+   - code/llm_client.py
+   - Core runtime logic + LLM integration. Responsibilities: - Constants & config: REPO_ROOT, DATASET_DIR, IMAGE_DATA_PATH, DEFAULT_CLAIMS_PATH, MODEL env fallback.
+   - Allowed enums: RISK_FLAG_ORDER, ISSUE_TYPES, OBJECT_PARTS for claim_object types. These drive validation and ordering in outputs.
+   - Keyword maps (CLAIM_KEYWORDS) used for prompt constraints and allowed values.
+   - Client builder: build_client() reads OPENROUTER_API_KEY or OPENAI_API_KEY and constructs OpenAI client wrapper (base_url from OPENROUTER_BASE_URL). Raises if no key.
+   - CSV helpers: read_csv_rows, read_claim_rows (falls back to sample file if claims.csv missing).
+   - Caching loaders: load_user_history(), load_evidence_requirements(). These read CSVs once and cache results via lru_cache.
+   - row_key(): deterministic SHA1 fingerprint for each row based on user_id|image_paths|user_claim|claim_object. Purpose: stable key for imageData.json and dedupe between build_image_data and build_prediction_rows.
+   - Image handling: resolve_image_paths transforms semicolon list into Path objects under dataset dir; encode_image converts images to PNG via Pillow (if present) or reads raw bytes and base64 encodes; returns small structured object compatible with the LLM content format used by chat API.
+   - Prompt builder: build_prompt(row, image_paths) constructs JSON payload including: - task description, user_id, claim_object, user_claim, image_ids, image_paths (relative), history_flags, allowed enum values, evidence_requirements filtered by claim_object, required_schema, and rules (use images as primary truth, return only JSON).
+   - LLM call & JSON extraction: analyze_claim_images sends messages = [{"role":"user","content": content}] where content is list with text JSON prompt then encoded images. Temperature set to 0 for deterministic behavior. Response parsed with extract_json(text) that strips fences and finds first {...} JSON object. If missing, raises.
+   - Normalizers & merge helpers: normalize_bool, normalize_severity, normalize_claim_status, normalize_risk_flags (orders by RISK_FLAG_ORDER and collapses duplicates), normalize_object_part (ensures part exists in OBJECT_PARTS for claim_object), normalize_issue_type, expand_semicolon_values, merge_text, merge_ordered_unique.
+   - Enrichment: enrich_analysis(row, analysis) converts booleans to "true"/"false" lower-case strings, composes risk_flags as semicolon-separated string, returns a flat dict matching OUTPUT_HEADERS.
+   - Build phases: build_image_data iterates rows, resolves images, calls analyze_claim_images, writes dataset/imageData.json mapping row_key->enriched analysis. build_prediction_rows uses image_data mapping to produce final list of rows for CSV output; if analysis missing, populates conservative defaults (not_enough_information, unknowns, valid_image False).
+   - Utilities: extract_json robustly parses common LLM formatting variants (code fences, "json" labels) â important because model may output extra text.
+   - Key outputs: IMAGE_DATA_PATH JSON and final CSV rows.
+   #### code/claim_extractor.py
+   - Offline utility for deriving claimData.json by scanning claims.csv against a built-in dictionary of keywords and objectParts. Responsibilities: - Defines claimData mapping (car/laptop/package) similar to CLAIM_KEYWORDS in llm_client.
+   - Reads dataset/claims.csv, collects per-user claim text and object type.
+   - find_present_keywords(text, keywords) returns matched set of issueType keys or objectParts present in user_claim using regex word-boundary matching; used to populate claimDataByUser[user_id].
+   - Writes dataset/claimData.json used for quick inspection or indexing outside LLM pipeline.
+   - Purpose: precompute which issueType/objectPart keywords are present in user claims for analytics/labeling.
+   #### dataset/ directory and files
+   - claims.csv: primary input CSV. Expected columns at minimum: user_id, image_paths, user_claim, claim_object. Each row one claim submission. image_paths are relative to dataset/images and use semicolon separators for multiple images.
+   - sample_claims.csv: fallback small sample used when claims.csv absent.
+   - user_history.csv: per-user historic metadata including history_flags column. determine_risk_flags reads this to add contextual risk flags to prompt and final risk_flags output.
+   - evidence_requirements.csv: list of evidence rules filtered by claim_object; loaded into prompt required_schema/evidence_requirements to guide LLM decisions.
+   - claimData.json: authored by claim_extractor.py; per-user present keywords for issueType/objectParts. Useful for offline analysis and allowed-values guidance.
+   - imageData.json: written by llm_client.build_image_data. Primary machine-readable output: mapping row_key -> enriched analysis (fields same as OUTPUT_HEADERS but types preserved). Useful for debug, audits, and replays.
+   - output.csv & dataset/output.csv: tabular CSV exports matching OUTPUT_HEADERS for downstream ingestion by payout/repair/investigation systems.
+   - dataset/images/*: sample and test image folders. Images referenced by claims.csv. encode_image reads these to embed for LLM. Paths in prompt are relative POSIX-style (DATASET_DIR relative).
+   - misc
+   - .vscode/extensions.json: editor recommendations, irrelevant to runtime.
+   - code/pycache/*: compiled bytecode, ignore.
 
-5. Observability and Control
-   - Metrics, logs, and traces are emitted at key pipeline stages for performance and error monitoring.
-   - A control API exposes health, metrics, and a small set of administrative endpoints for graceful shutdown and configuration introspection.
+##### Key invariants, failure modes, and reading tips
 
-General pipeline flow
----------------------
-1. Ingest: A collector receives data and converts it into the canonical event envelope. Envelope fields include id, source, timestamp, payload, schema_version, and metadata.
-2. Enqueue: The orchestration layer places the envelope into a work queue. Concurrency and priority rules are applied here.
-3. Validate: A lightweight validation step verifies schema compatibility and rejects malformed events early.
-4. Transform: One or more transformation modules modify or enrich the payload. Transformations run in a deterministic order specified by configuration.
-5. Enrich: Optional enrichment modules call external services or local reference stores to attach additional context (e.g., geolocation, user profile lookup).
-6. Persist/Forward: The final event is sent to configured sinks. Each sink returns success/failure and an idempotency token when supported.
-7. Acknowledge/Retry: On success, the orchestration layer acknowledges downstream systems. On transient failures, events are retried with exponential backoff. Permanent failures are routed to a dead-letter store with diagnostic metadata.
-
-Key features and behaviors
---------------------------
-- Modularity: Adapters and processors are pluggable; add a new source or sink by implementing a small interface.
-- Idempotency: Sinks that support idempotency are preferred; orchestration uses tokens to avoid duplicates.
-- Backpressure & Concurrency: The orchestrator limits parallel processing and applies backpressure to collectors if queues grow.
-- Observability: Structured logs, metrics (latency, throughput, error rate), and distributed trace points are emitted.
-- Fault handling: Retries with backoff, circuit-breakers for downstream failures, and a dead-letter queue for manual inspection.
-
-Running locally
----------------
-Prerequisites:
-- A supported runtime (see repository-specific tooling and language settings).
-- Local dependencies: message queue or mocks for sources/sinks, configured via environment variables or local config files.
-
-Basic steps:
-1. Configure a local environment file (example: .env.local) to point adapters at dev test doubles.
-2. Start required dependencies (e.g., local queue, local DB). Docker-compose may be provided to simplify this.
-3. Run the orchestrator in development mode. Use the control API to check health and watch metrics.
-
-Testing and validation
-----------------------
-- Unit tests: Validate individual adapters and transformations.
-- Integration tests: Run short-lived pipelines using test doubles for sinks and collectors to assert end-to-end behavior.
-- Contract tests: Ensure that adapters produce and accept the canonical envelope format when evolving schemas.
-
-Configuration
--------------
-Pipeline topology, concurrency limits, retry policies, and adapter selection are controlled through a central configuration file (YAML/JSON) that can be loaded at startup or reloaded dynamically. Configuration keys include:
-- collectors: list of enabled collector adapters and their parameters
-- processors: ordered list of transformation modules
-- sinks: list of destinations with retry and idempotency settings
-- orchestration: concurrency, queue depth, retry policy, dead-letter config
-
-Extending the project
----------------------
-- Add a new collector: implement the Collector interface, provide adapter registration, and add config.
-- Add a new transformation: write a pure function or module that accepts and returns the canonical envelope, then register it in pipeline order.
-- Add a new sink: implement idempotent delivery semantics when possible, and surface success / failure codes for retries.
-
-Operational notes
------------------
-- Monitor queue depth and processing latency; rising queue depth typically indicates a downstream bottleneck.
-- Use the dead-letter store to triage persistent failures — inspect payload and enrichment traces to diagnose root cause.
-- Scale horizontally by running more orchestrator workers and using a shared durable work queue.
-
-Security and data handling
---------------------------
-- Sensitive information should be redacted in logs and replaced with hashed tokens if reporting is required.
-- Adapters that call external services should support configurable timeouts and retry budgets to avoid cascading failures.
+   - LLM must return strict JSON object. extract_json enforces; if LLM returns prose before/after JSON, code strips non-JSON but will error if no braces found.
+   - API keys: set OPENROUTER_API_KEY or OPENAI_API_KEY env var. MODEL can be overridden with OPENROUTER_MODEL.
+   - Images: Pillow optional. If Pillow absent, code guesses mimetype and base64-encodes raw bytes. Converted PNG when Pillow present.
+   - row_key ensures stable mapping between build_image_data and build_prediction_rows; duplicates keyed by identical raw fields collapse.
+   - Risk flags ordering enforced by RISK_FLAG_ORDER so outputs consistent for downstream ranking.
+   - OUTPUT_HEADERS defines final CSV column order; enrich_analysis ensures CSV-ready string types.
